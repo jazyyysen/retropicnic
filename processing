@@ -1,0 +1,155 @@
+import oscP5.*;
+import netP5.*;
+
+OscP5 oscP5;
+NetAddress myRemoteLocation;
+
+
+
+boolean game_over = false; 
+Basket basket;  
+int misses = 0;
+int maxMisses = 3;
+int score = 0;
+Fruit[] fruits;
+int fruitCount = 5;
+String[] fruitImages = {"strawberry.png", "banana.png", "apple.png"};
+int totalFruitTypes = fruitImages.length;
+boolean fruitMissed = true; 
+
+
+
+void setup() {
+  fullScreen();
+  smooth(); 
+  frameRate(30);
+  basket = new Basket(); 
+  fruits = new Fruit[fruitCount];
+
+  
+  oscP5 = new OscP5(this, 9300);
+  myRemoteLocation = new NetAddress("127.0.0.1", 9300);
+  
+     OscMessage msg = new OscMessage("/music");
+  msg.add("this");
+  oscP5.send(msg, myRemoteLocation);
+  
+  for (int i = 0; i < fruitCount; i++) {
+    fruits[i] = new Fruit();
+  }
+}
+
+
+ void draw() {
+  background(138, 172, 224);
+  basket.display();
+
+
+
+  if (!game_over) {
+    for (Fruit fruit : fruits) {
+      fruit.display();
+      fruit.fall();
+      println("Fruit Y: " + fruit.y);
+      if (basket.catches(fruit)) {
+        score++;
+        fruit.reset();
+      } else if (fruit.y > height && !basket.catches(fruit)) {
+        misses++;
+        fruit.reset();
+
+      }
+    }
+
+    if (misses >= maxMisses) {
+      game_over = true;
+      println("Game Over! (Misses >= Max Misses)");
+    }
+  }
+
+  println("Misses: " + misses + " / " + maxMisses);
+  println("Game Over: " + game_over);
+
+  if (game_over) {
+    displayGameOver();
+  }
+}
+void displayGameOver() {
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  fill(255, 0, 0);
+  text("Game Over", width / 2, height / 2 - 50);
+  text("Score: " + score, width / 2, height / 2 + 50);
+}
+
+class Fruit {
+  float x, y;
+  float speed;
+  PImage fruitImage;
+  float fruitSizes = 90;    
+
+  Fruit() {
+    x = random(width);
+    y = 0;
+    int randomIndex = int(random(0, totalFruitTypes));
+    speed = random(4, 8);
+    fruitImage = loadImage(fruitImages[randomIndex]);
+  }
+    void display() {
+    image(fruitImage, x, y, 50, 50); 
+    image(fruitImage, x, y, fruitSizes, fruitSizes);
+  }
+
+  void fall() {
+    y += speed;
+    if (y > height) {
+      reset();
+    }
+  }
+
+  void reset() {
+    y = 0;
+    x = random(width);
+    int randomIndex = int(random(0, totalFruitTypes));
+    fruitImage = loadImage(fruitImages[randomIndex]);
+  }
+}
+
+class Basket {
+  int posX, posY;
+  PImage basket_image;
+  PImage grass_image;
+  PImage strawberry;
+  PImage banana;
+  PImage apple;
+  int w, h;
+  
+  Basket() {
+    basket_image = loadImage("basket.png");
+    grass_image = loadImage("grass.png");
+    w = 190;
+    h = 185;
+    posX = mouseX - w/2;
+    posY = height - h;
+  }
+  
+    void display()  {
+    posX = mouseX - w/2;
+     posY = height - h;
+    image(grass_image, 0, height - grass_image.height / 1.2);
+    image(basket_image, posX, posY, w, h);
+
+   
+  
+  }
+    boolean catches(Fruit fruit) {
+    // Check if the basket intersects with the fruit
+      boolean isCatching = (posX < fruit.x + fruit.fruitSizes && posX + w > fruit.x && posY < fruit.y + fruit.fruitSizes && posY + h > fruit.y);
+    println("Basket Catches: " + isCatching);
+    return isCatching;
+}
+}
+
+
+
+    
